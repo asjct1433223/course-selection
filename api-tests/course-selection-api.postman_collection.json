@@ -1,0 +1,1691 @@
+{
+  "info": {
+    "name": "学生选课管理系统 · API 自动化测试",
+    "_postman_id": "b1a2c3d4-0000-4000-8000-000000000001",
+    "description": "学生选课管理系统（course-selection-backend）接口自动化测试集合。\n\n使用前：1) 启动后端（默认 http://localhost:8080）；2) 数据库已由 sql/data.sql 初始化测试账号。\n运行方式：Postman → Collection Runner → 选择本集合 → 按默认顺序运行（文件夹顺序即依赖顺序）。\n\n账号：admin/123456（管理员）、t001/123456（教师）、s2024001/123456（学生）。\n集合变量 baseUrl 可在 Variables 中修改。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 · 基础与登录",
+      "item": [
+        {
+          "name": "00-1 未带 Token 访问受保护接口 → 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/student/list",
+            "description": "安全配置 authenticationEntryPoint 应返回 401"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () { pm.response.to.have.status(401); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"body.code = 401\", function () { pm.expect(j.code).to.eql(401); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "00-2 管理员登录 admin/123456",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"{{adminUsername}}\",\"password\":\"{{adminPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"登录成功\", function () { pm.expect(j.code).to.eql(200); });",
+                  "pm.test(\"角色 = ADMIN\", function () { pm.expect(j.data.role).to.eql(\"ADMIN\"); });",
+                  "pm.test(\"返回 token\", function () { pm.expect(j.data.token).to.be.a(\"string\"); pm.expect(j.data.token.length).to.be.above(10); });",
+                  "pm.collectionVariables.set(\"adminToken\", j.data.token);",
+                  "pm.collectionVariables.set(\"adminRealName\", j.data.realName || \"\");"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "00-3 教师登录 t001/123456",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"{{teacherUsername}}\",\"password\":\"{{teacherPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"登录成功\", function () { pm.expect(j.code).to.eql(200); });",
+                  "pm.test(\"角色 = TEACHER\", function () { pm.expect(j.data.role).to.eql(\"TEACHER\"); });",
+                  "pm.test(\"已关联 teacherId（种子数据校验）\", function () { pm.expect(j.data.teacherId).to.not.be.null; });",
+                  "pm.collectionVariables.set(\"teacherToken\", j.data.token);",
+                  "pm.collectionVariables.set(\"teacherId\", j.data.teacherId);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "00-4 学生登录 s2024001/123456",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"{{studentUsername}}\",\"password\":\"{{studentPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"登录成功\", function () { pm.expect(j.code).to.eql(200); });",
+                  "pm.test(\"角色 = STUDENT\", function () { pm.expect(j.data.role).to.eql(\"STUDENT\"); });",
+                  "pm.test(\"已关联 studentId（种子数据回归校验）\", function () { pm.expect(j.data.studentId).to.not.be.null; });",
+                  "pm.collectionVariables.set(\"studentToken\", j.data.token);",
+                  "pm.collectionVariables.set(\"studentId\", j.data.studentId);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "00-5 密码错误 → 业务码 500",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"{{adminUsername}}\",\"password\":\"wrong-password\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200（业务异常由 GlobalExceptionHandler 包装）\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 500\", function () { pm.expect(j.code).to.eql(500); });",
+                  "pm.test(\"提示用户名或密码错误\", function () { pm.expect(j.message).to.include(\"用户名或密码\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "10 · 学生管理（管理员）",
+      "item": [
+        {
+          "name": "10-1 学生分页查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/student/page?current=1&size=5&keyword=",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"返回分页结构\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data.records).to.be.an(\"array\"); pm.expect(j.data.total).to.be.a(\"number\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10-2 学生列表查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/student/list",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"返回数组且非空\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data).to.be.an(\"array\"); pm.expect(j.data.length).to.be.above(0); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10-3 新增学生（唯一学号/账号）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"studentNo\":\"{{newStudentNo}}\",\"name\":\"Postman学生\",\"gender\":\"男\",\"className\":\"自动化测试班\",\"grade\":\"2024\",\"phone\":\"13900009999\",\"username\":\"{{newStudentUser}}\",\"password\":\"123456\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/student",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var s = String(Date.now());",
+                  "pm.collectionVariables.set(\"newStudentNo\", \"PS\" + s);",
+                  "pm.collectionVariables.set(\"newStudentUser\", \"psu\" + s);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10-4 按学号检索并记录学生ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/student/page?current=1&size=10&keyword={{newStudentNo}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 200\", function () { pm.expect(j.code).to.eql(200); });",
+                  "var recs = (j.data && j.data.records) ? j.data.records : [];",
+                  "var target = recs.filter(function (r) { return r.studentNo === pm.collectionVariables.get(\"newStudentNo\"); })[0];",
+                  "pm.test(\"能检索到刚创建的学生\", function () { pm.expect(target).to.be.an(\"object\"); });",
+                  "if (target) { pm.collectionVariables.set(\"createdStudentId\", target.id); pm.collectionVariables.set(\"createdStudentUserId\", target.userId); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10-5 按ID查询学生",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/student/{{createdStudentId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"字段正确\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data.studentNo).to.eql(pm.collectionVariables.get(\"newStudentNo\")); pm.expect(j.data.name).to.eql(\"Postman学生\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10-6 修改学生",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id\":\"{{createdStudentId}}\",\"name\":\"Postman学生-已改\",\"className\":\"自动化测试班-改\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/student",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10-7 修改后校验",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/student/{{createdStudentId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"姓名已更新\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data.name).to.eql(\"Postman学生-已改\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10-8 重复学号新增 → 应失败",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"studentNo\":\"{{newStudentNo}}\",\"name\":\"重复学号\",\"username\":\"{{dupStudentUser}}\",\"password\":\"123456\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/student",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"dupStudentUser\", \"dup\" + String(Date.now()));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 500\", function () { pm.expect(j.code).to.eql(500); });",
+                  "pm.test(\"提示学号已存在\", function () { pm.expect(j.message).to.include(\"学号已存在\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10-9 删除学生（级联删账号）",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/student/{{createdStudentId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10-10 删除后查询应为空",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/student/{{createdStudentId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 200 且 data 为 null\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data).to.be.null; });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "20 · 教师管理（管理员）",
+      "item": [
+        {
+          "name": "20-1 教师分页查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/teacher/page?current=1&size=5",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"返回分页结构\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data.records).to.be.an(\"array\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "20-2 新增教师（唯一工号/账号）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"teacherNo\":\"{{newTeacherNo}}\",\"name\":\"Postman教师\",\"gender\":\"男\",\"title\":\"讲师\",\"department\":\"自动化测试学院\",\"phone\":\"13800008888\",\"username\":\"{{newTeacherUser}}\",\"password\":\"123456\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/teacher",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var s = String(Date.now());",
+                  "pm.collectionVariables.set(\"newTeacherNo\", \"PT\" + s);",
+                  "pm.collectionVariables.set(\"newTeacherUser\", \"ptu\" + s);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "20-3 按工号检索并记录教师ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/teacher/page?current=1&size=10&keyword={{newTeacherNo}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 200\", function () { pm.expect(j.code).to.eql(200); });",
+                  "var recs = (j.data && j.data.records) ? j.data.records : [];",
+                  "var target = recs.filter(function (r) { return r.teacherNo === pm.collectionVariables.get(\"newTeacherNo\"); })[0];",
+                  "pm.test(\"能检索到刚创建的教师\", function () { pm.expect(target).to.be.an(\"object\"); });",
+                  "if (target) { pm.collectionVariables.set(\"createdTeacherId\", target.id); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "20-4 按ID查询教师",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/teacher/{{createdTeacherId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"字段正确\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data.teacherNo).to.eql(pm.collectionVariables.get(\"newTeacherNo\")); pm.expect(j.data.name).to.eql(\"Postman教师\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "20-5 修改教师",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id\":\"{{createdTeacherId}}\",\"name\":\"Postman教师-已改\",\"title\":\"副教授\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/teacher",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "20-6 修改后校验",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/teacher/{{createdTeacherId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"姓名已更新\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data.name).to.eql(\"Postman教师-已改\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "20-7 删除教师",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/teacher/{{createdTeacherId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "20-8 删除后查询应为空",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/teacher/{{createdTeacherId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 200 且 data 为 null\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data).to.be.null; });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "30 · 课程管理（管理员）",
+      "item": [
+        {
+          "name": "30-1 课程分页查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/page?current=1&size=5",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"返回分页结构\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data.records).to.be.an(\"array\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "30-2 课程列表查询（含教师姓名）",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/list",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"返回数组且带 teacherName\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data).to.be.an(\"array\"); pm.expect(j.data.length).to.be.above(0); pm.expect(j.data[0]).to.have.property(\"teacherName\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "30-3 新增课程（授课教师取登录返回的 teacherId）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"courseNo\":\"{{newCourseNo}}\",\"name\":\"Postman课程\",\"credit\":2.5,\"teacherId\":\"{{teacherId}}\",\"capacity\":10,\"semester\":\"2025-2026-2\",\"classHours\":32,\"description\":\"自动化测试课程\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/course",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"newCourseNo\", \"PC\" + String(Date.now()));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "30-4 按编号检索并记录课程ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/page?current=1&size=10&keyword={{newCourseNo}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 200\", function () { pm.expect(j.code).to.eql(200); });",
+                  "var recs = (j.data && j.data.records) ? j.data.records : [];",
+                  "var target = recs.filter(function (r) { return r.courseNo === pm.collectionVariables.get(\"newCourseNo\"); })[0];",
+                  "pm.test(\"能检索到刚创建的课程\", function () { pm.expect(target).to.be.an(\"object\"); });",
+                  "if (target) { pm.collectionVariables.set(\"createdCourseId\", target.id); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "30-5 按ID查询课程",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/{{createdCourseId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"字段正确\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data.courseNo).to.eql(pm.collectionVariables.get(\"newCourseNo\")); pm.expect(j.data.name).to.eql(\"Postman课程\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "30-6 修改课程",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id\":\"{{createdCourseId}}\",\"name\":\"Postman课程-已改\",\"capacity\":20}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/course",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "30-7 修改后校验",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/{{createdCourseId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"名称与容量已更新\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data.name).to.eql(\"Postman课程-已改\"); pm.expect(j.data.capacity).to.eql(20); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "30-8 删除课程",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/{{createdCourseId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "30-9 删除后查询应为空",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/{{createdCourseId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 200 且 data 为 null\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.data).to.be.null; });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "40 · 选课与成绩（学生/教师）",
+      "item": [
+        {
+          "name": "40-1 新建一节用于选课的课程（容量 5）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"courseNo\":\"{{selCourseNo}}\",\"name\":\"Postman选课课程\",\"credit\":1.5,\"teacherId\":\"{{teacherId}}\",\"capacity\":5,\"semester\":\"2025-2026-2\",\"classHours\":16,\"description\":\"用于选课链路测试\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/course",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"selCourseNo\", \"SC\" + String(Date.now()));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "40-2 记录选课课程ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/page?current=1&size=10&keyword={{selCourseNo}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 200\", function () { pm.expect(j.code).to.eql(200); });",
+                  "var recs = (j.data && j.data.records) ? j.data.records : [];",
+                  "var target = recs.filter(function (r) { return r.courseNo === pm.collectionVariables.get(\"selCourseNo\"); })[0];",
+                  "pm.test(\"能检索到选课用课程\", function () { pm.expect(target).to.be.an(\"object\"); });",
+                  "if (target) { pm.collectionVariables.set(\"selCourseId\", target.id); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "40-3 学生选课",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/select?studentId={{studentId}}&courseId={{selCourseId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"选课成功\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.message).to.include(\"选课成功\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "40-4 校验我的选课记录并记录 scId",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/sc/student/{{studentId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 200\", function () { pm.expect(j.code).to.eql(200); });",
+                  "var cid = Number(pm.collectionVariables.get(\"selCourseId\"));",
+                  "var rec = (j.data || []).filter(function (r) { return Number(r.courseId) === cid; })[0];",
+                  "pm.test(\"我的选课包含该课程且成绩为空\", function () { pm.expect(rec).to.be.an(\"object\"); pm.expect(rec.score).to.be.null; });",
+                  "if (rec) { pm.collectionVariables.set(\"selScId\", rec.id); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "40-5 教师录入成绩",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/sc/score?scId={{selScId}}&score=88.5",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "40-6 校验成绩已写入",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/sc/student/{{studentId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "var cid = Number(pm.collectionVariables.get(\"selCourseId\"));",
+                  "var rec = (j.data || []).filter(function (r) { return Number(r.courseId) === cid; })[0];",
+                  "pm.test(\"成绩为 88.5\", function () { pm.expect(rec).to.be.an(\"object\"); pm.expect(Number(rec.score)).to.eql(88.5); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "40-7 重复选课 → 应失败",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/select?studentId={{studentId}}&courseId={{selCourseId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 500\", function () { pm.expect(j.code).to.eql(500); });",
+                  "pm.test(\"提示已选过该课程\", function () { pm.expect(j.message).to.include(\"已选过该课程\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "40-8 学生退课",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/drop?studentId={{studentId}}&courseId={{selCourseId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"退课成功\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.message).to.include(\"退课成功\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "40-9 校验退课成功",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/sc/student/{{studentId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "var cid = Number(pm.collectionVariables.get(\"selCourseId\"));",
+                  "var rec = (j.data || []).filter(function (r) { return Number(r.courseId) === cid; })[0];",
+                  "pm.test(\"选课记录已移除\", function () { pm.expect(rec).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "40-10 删除选课用课程（清理）",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/course/{{selCourseId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 状态 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 code = 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "90 · 鉴权与异常",
+      "item": [
+        {
+          "name": "90-1 无效 Token → 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid.token.value"
+              }
+            ],
+            "url": "{{baseUrl}}/api/student/list",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () { pm.response.to.have.status(401); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"body.code = 401\", function () { pm.expect(j.code).to.eql(401); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "90-2 学生访问教师分页 → 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/teacher/page?current=1&size=5",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"body.code = 403\", function () { pm.expect(j.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "90-3 学生可读教师列表（放行的公开列表接口）",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/teacher/list",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "90-4 教师可访问教师分页",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/teacher/page?current=1&size=5",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test(\"业务码 200\", function () { pm.expect(j.code).to.eql(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// 集合级默认值：仅在未设置时初始化 baseUrl",
+          "if (!pm.collectionVariables.get(\"baseUrl\")) { pm.collectionVariables.set(\"baseUrl\", \"http://localhost:8080\"); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "后端地址"
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "teacherUsername",
+      "value": "t001",
+      "type": "string"
+    },
+    {
+      "key": "teacherPassword",
+      "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "studentUsername",
+      "value": "s2024001",
+      "type": "string"
+    },
+    {
+      "key": "studentPassword",
+      "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newStudentNo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newStudentUser",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dupStudentUser",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdStudentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdStudentUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newTeacherNo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newTeacherUser",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdTeacherId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newCourseNo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdCourseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "selCourseNo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "selCourseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "selScId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

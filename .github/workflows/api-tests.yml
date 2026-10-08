@@ -1,0 +1,74 @@
+name: API Tests
+
+# 每次 push / PR 都会：编译后端 → 用 H2 起服务 → 用 Postman 集合跑接口回归。
+# H2 是内嵌库，所以不需要任何外部数据库服务。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 装 JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: 装 Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 构建后端
+        working-directory: backend
+        run: mvn -B -DskipTests package
+
+      - name: 启动后端（H2 内嵌库，无需外部数据库）
+        working-directory: backend
+        run: |
+          nohup java -jar target/course-selection-1.0.0.jar > app.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -s -o /dev/null http://localhost:8080/api/auth/login; then
+              echo "服务已就绪（第 ${i} 次探测）"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "启动超时，下面是应用日志"
+          tail -50 app.log
+          exit 1
+
+      - name: 跑接口自动化用例（newman）
+        run: |
+          npx --yes newman@6 run api-tests/course-selection-api.postman_collection.json \
+            --env-var baseUrl=http://localhost:8080 \
+            --reporters cli \
+            --reporter-cli-no-console
+
+      - name: 失败时打印后端日志
+        if: failure()
+        run: tail -100 backend/app.log
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 装 Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 构建前端
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
