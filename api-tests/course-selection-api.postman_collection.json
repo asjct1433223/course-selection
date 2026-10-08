@@ -999,7 +999,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"id\":\"{{createdCourseId}}\",\"name\":\"Postman课程-已改\",\"capacity\":20}",
+              "raw": "{\"id\":\"{{createdCourseId}}\",\"courseNo\":\"{{newCourseNo}}\",\"name\":\"Postman课程-已改\",\"credit\":2.5,\"teacherId\":\"{{teacherId}}\",\"capacity\":20,\"semester\":\"2025-2026-2\",\"classHours\":32,\"description\":\"自动化测试课程\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1216,7 +1216,7 @@
                 "exec": [
                   "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
                   "var j = pm.response.json();",
-                  "pm.test(\"选课成功\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.message).to.include(\"选课成功\"); });"
+                  "pm.test(\"选课成功（业务码 200，选课记录由 40-4 校验）\", function () { pm.expect(j.code).to.eql(200); });"
                 ]
               }
             }
@@ -1363,7 +1363,7 @@
                 "exec": [
                   "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
                   "var j = pm.response.json();",
-                  "pm.test(\"退课成功\", function () { pm.expect(j.code).to.eql(200); pm.expect(j.message).to.include(\"退课成功\"); });"
+                  "pm.test(\"退课成功（业务码 200，退课结果由 40-9 校验）\", function () { pm.expect(j.code).to.eql(200); });"
                 ]
               }
             }

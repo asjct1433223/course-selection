@@ -1,4 +1,10 @@
-#!/bin/bash
-# Maven Wrapper script
-BASEDIR=$(dirname "$0")
-exec java -cp "$BASEDIR/.mvn/wrapper/maven-wrapper.jar" org.apache.maven.wrapper.MavenWrapperMain "$@"
+#!/bin/sh
+# 最小可用的 Maven Wrapper 启动脚本（macOS / Linux / Git Bash）
+BASEDIR=$(cd "$(dirname "$0")" && pwd)
+if [ -n "$JAVA_HOME" ]; then
+  JAVACMD="$JAVA_HOME/bin/java"
+else
+  JAVACMD=java
+fi
+exec "$JAVACMD" -Dmaven.multiModuleProjectDirectory="$BASEDIR" \
+  -cp "$BASEDIR/.mvn/wrapper/maven-wrapper.jar" org.apache.maven.wrapper.MavenWrapperMain "$@"

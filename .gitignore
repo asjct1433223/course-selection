@@ -25,3 +25,6 @@ Thumbs.db
 
 # 日志
 *.log
+# 本地运行产物
+backend/app.out
+backend/app.err
